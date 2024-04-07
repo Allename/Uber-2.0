@@ -51,7 +51,6 @@ function Input({ type }) {
     <div className='bg-slate-200 p-3 rounded-lg mt-3 flex items-center gap-4'>
       {type === 'source' ? <Source /> : <Destination />}
       <GooglePlacesAutocomplete
-        apiKey={process.env.NEXT_PUBLIC_GOOGLE_API_KEY}
         selectProps={{
           value,
           onChange: (place) => {getLatAndLong(place, type); setValue(place)},
