@@ -1,18 +1,86 @@
-import React from 'react'
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import React, { useContext, useEffect, useState } from 'react'
+import { DirectionsRenderer, GoogleMap, MarkerF, OverlayView, OverlayViewF, useJsApiLoader } from '@react-google-maps/api';
+import { SourceContext } from '@/context/SourceContext';
+import { DestinationContext } from '@/context/DestinationContext';
 
 function MapSection() {
   const containerStyle = {
     width: '100%',
     height: window.innerWidth * 0.45
   };
+
+  const {source, setSource} = useContext(SourceContext);
+  const {destination, setDestination} = useContext(DestinationContext);
   
-  const center = {
+  const [center, setCenter] = useState({
     lat: -3.745,
     lng: -38.523
-  };
+  });
 
   const [map, setMap] = React.useState(null)
+  const [directionRoutes, setDirectionRoutes] = useState([])
+
+  useEffect(() => {
+    if (source?.length != [] && map) {
+      map.panTo({
+        lat: source.lat,
+        lng: source.lng
+      })
+
+      setCenter({
+        lat: source.lat,
+        lng: source.lng
+      })
+    }
+
+    if (source.length != [] && destination.length != []) {
+      directionRoute()
+    }
+
+  }, [source])
+
+  useEffect(() => {
+    if (destination?.length != [] && map) {
+      setCenter({
+        lat: destination.lat,
+        lng: destination.lng
+      })
+    }
+
+    if (source.length != [] && destination.length != []) {
+      directionRoute()
+    }
+
+  }, [destination])
+
+  const directionRoute = () => {
+    const directionsService = new google.maps.DirectionsService();
+    // const directionsRenderer = new window.google.maps.DirectionsRenderer();
+    // directionsRenderer.setMap(map);
+
+    // const request = {
+    //   origin: source,
+    //   destination: destination,
+    //   travelMode: 'DRIVING'
+    // };
+
+    // directionsService.route(request, (result, status) => {
+    //   if (status == 'OK') {
+    //     directionsRenderer.setDirections(result);
+    //   }
+    // })
+    directionsService.route({
+      origin: {lat: source.lat, lng: source.lng},
+      destination: {lat: destination.lat, lng: destination.lng},
+      travelMode: google.maps.TravelMode.DRIVING
+    }, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          setDirectionRoutes(result)
+        } else {
+          console.error('Error:')
+        }
+    })
+  }
 
   const onLoad = React.useCallback(function callback(map) {
     // This is just an example of getting and using the map instance!!! don't just blindly copy!
@@ -30,13 +98,60 @@ function MapSection() {
     <GoogleMap
       mapContainerStyle={containerStyle}
       center={center}
-      zoom={10}
-      onLoad={onLoad}
-      onUnmount={onUnmount}
+      zoom={11}
+      onLoad={map=>setMap(map)}
+      // onUnmount={onUnmount}
       options={{mapId: 'a15984ecdd2cd79f'}}
     >
-      { /* Child components, such as markers, info windows, etc. */ }
-      <></>
+      {source?.length != [] ? <MarkerF 
+        position={{lat: source.lat, lng: source.lng}}
+        icon={{
+          url: '/marker.png',
+          scaledSize: {
+            width: 20,
+            height: 20
+          }
+        }}
+      >
+        <OverlayViewF
+          position={{lat: source.lat, lng: source.lng}}
+          mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+        >
+          <div className='p-2 bg-white font-bold inline-block'>
+            <p className='text-black text-[16px]'>{source.label}</p>
+          </div>
+        </OverlayViewF>
+      </MarkerF> : null}
+
+      {destination?.length != [] ? <MarkerF 
+        position={{lat: destination.lat, lng: destination.lng}}
+        icon={{
+          url: '/marker2.png',
+          scaledSize: {
+            width: 20,
+            height: 20
+          }
+        }}
+      >
+        <OverlayViewF
+          position={{lat: destination.lat, lng: destination.lng}}
+          mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+        >
+          <div className='p-2 bg-white font-bold inline-block'>
+            <p className='text-black text-[16px]'>{destination.label}</p>
+          </div>
+        </OverlayViewF>
+      </MarkerF> : null}
+      <DirectionsRenderer 
+        directions={directionRoutes}
+        options={{
+          // polylineOptions: {
+          //   strokeColor: 'red',
+          //   strokeOpacity: 0.5,
+          //   strokeWeight: 5
+          // }
+        }}
+      />
     </GoogleMap>
   )
 }
